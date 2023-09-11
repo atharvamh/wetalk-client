@@ -4,6 +4,7 @@ import { Button, Form, Icon, Label } from "semantic-ui-react";
 import { loginUser, registerUser } from "../services/user";
 import { toast } from "react-hot-toast";
 import localStorageService from "../services/localStorageService";
+import socket from "../services/socket";
 
 interface ICustomForm{
     isSignup : boolean;
@@ -69,6 +70,9 @@ export default function CustomForm({ isSignup, setIsSignup } : ICustomForm) {
             resetFormFields();
 
             if(response.isSuccess){
+                socket.emit("user-login", {
+                    userId : response.data._id
+                });
                 localStorageService.set("_uid", JSON.stringify(response.data._id));
                 localStorageService.set("x-token", JSON.stringify(response.data.token));
                 toast.success(response.message);

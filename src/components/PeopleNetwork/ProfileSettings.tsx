@@ -54,7 +54,7 @@ export default function ProfileSettings(){
         const response = await authService.logout(uid);
 
         if(response.isSuccess){
-            socket.emit("logout", {userId : uid});
+            socket.emit("user-logout", {userId : uid});
             toast.success(response.message);
             setTimeout(() => authService.removeCredentials(), 1000);
             return;

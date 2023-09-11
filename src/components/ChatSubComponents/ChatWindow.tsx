@@ -31,6 +31,7 @@ export default function ChatWindow({ userId, messages, setMessages,  isDataLoadi
     const [message, setMessage] = useState<string>("");
     const [emojiPickerVisible, setEmojiPickerVisible] = useState(false);
     const [rtcActivityUid, setrtcActivityUid] = useState<string | null>(null);
+    const [uEvent, setuEvent] = useState<string | null>(null);
     const [rtcLogoutTime, setRtcLogoutTime] = useState<Date | null>(null);
 
     useEffect(() => {
@@ -41,11 +42,20 @@ export default function ChatWindow({ userId, messages, setMessages,  isDataLoadi
 
         socket.on("logout-success", (res : any) => {
             setrtcActivityUid(res.userId);
+            setuEvent(res.event);
             setRtcLogoutTime(res.timestamp);
         });
 
+        socket.on("login-success", (res: any) => {
+            setrtcActivityUid(res.userId);
+            setuEvent(res.event);
+            setRtcLogoutTime(null);
+        })
+
         return () => {
             socket.off("user-message");
+            socket.off("logout-success");
+            socket.off("login-success");
         }
     },[])
 
@@ -54,6 +64,7 @@ export default function ChatWindow({ userId, messages, setMessages,  isDataLoadi
         getUserDetails(userId).then((response) => {
             setRtcLogoutTime(null);
             setrtcActivityUid(null);
+            setuEvent(null);
             setChatUser(response.data);
         })
     },[userId]);
@@ -106,12 +117,15 @@ export default function ChatWindow({ userId, messages, setMessages,  isDataLoadi
     return (
         <div style={chatStyles.ChatWindow}>
             <div style={chatStyles.ChatBanner}>
-                <OnlineIndicator isOnline={ rtcActivityUid === userId ? false : chatUser?.isOnline} size="mini" />
+                <OnlineIndicator 
+                    isOnline={ rtcActivityUid === userId ? (uEvent === "LOGIN") : chatUser?.isOnline} 
+                    size="mini" 
+                />
                 <div style={{ fontWeight : "600" }}>
                     {firstLetterCaps(chatUser?.firstname || "") + " " + firstLetterCaps(chatUser?.lastname || "")}
                 </div>
                 {
-                    !chatUser?.isOnline ? 
+                    uEvent !== "LOGIN" && (uEvent === "LOGOUT" || !chatUser?.isOnline) ? 
                     <div style={{ fontSize : "0.8em" }}>
                         Last Seen : {" "}
                         { 

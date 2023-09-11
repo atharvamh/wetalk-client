@@ -28,11 +28,7 @@ export default function ChatPanel(){
         getRooms(userId).then((response : any) => {
             setRooms(response?.data);
             setIsLoading(false);
-        })
-
-        return () => {
-            socket.off("update-last-message");
-        }
+        });
     },[]);
     
     useEffect(() => {
