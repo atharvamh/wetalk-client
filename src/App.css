@@ -1,0 +1,48 @@
+#root {
+  margin: 0 auto;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 92vh;
+}
+
+.form-wrapper{
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  background-color: #fff;
+  padding: 2rem;
+  border-radius: 0.5rem;
+  min-width: 320px;
+}
+
+.ui.menu{
+  margin: 0 !important
+}
+
+.conversations-wrapper{
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  row-gap: 2rem;
+}
+
+.conversation{
+  border: 1px solid #fff;
+  border-radius: 0.4rem;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+}
+
+.header{
+  display: flex;
+  align-items: center;
+  justify-content: end;
+  position: fixed;
+  top: 0;
+  right: 0;
+  padding: 1rem;
+}
