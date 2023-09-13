@@ -5,11 +5,7 @@ import MessageContainer from "../MessageContainer";
 import { platformStyles } from "../../styles/platform";
 import { chatStyles } from "../../styles/chat";
 import UserPanel from "../ChatSubComponents/UserPanel";
-import socket from "../../services/socket";
 import ChatWindow from "../ChatSubComponents/ChatWindow";
-import { toast } from "react-hot-toast";
-import { getConversations } from "../../services/room";
-import { IMessage } from "../../interfaces/messages";
 import { getRooms } from "../../services/user";
 import { IRooms } from "../../interfaces/rooms";
 
@@ -19,38 +15,19 @@ export default function ChatPanel(){
     const [rooms, setRooms] = useState<IRooms[]>([]);
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const [currentChatUserId, setCurrentChatUserId] = useState<string | undefined>(undefined);
-    const [messages, setMessages] = useState<IMessage[]>([]);
-    const [isConversationLoading, setIsConversationLoading] = useState<boolean>(true);
+    const [currentChatRoomId, setCurrentChatRoomId] = useState<string | undefined>(undefined);
 
     useEffect(() => {
-        const chatuserId = localStorageService.get("chat_userId");
-        setCurrentChatUserId(chatuserId);
+        const chatRoomId = localStorageService.get("chatroom_id");
+        const chatUserId = localStorageService.get("chatuser_id");
+        setCurrentChatRoomId(chatRoomId);
+        setCurrentChatUserId(chatUserId);
+
         getRooms(userId).then((response : any) => {
             setRooms(response?.data);
             setIsLoading(false);
         });
     },[]);
-    
-    useEffect(() => {
-        if(currentChatUserId){
-            localStorageService.set("chat_userId", JSON.stringify(currentChatUserId));
-            socket.emit("join-room", { room: `${currentChatUserId}-${userId}` });
-            const roomId = `${currentChatUserId}-${userId}`
-
-            getConversations(roomId).then((response) => {
-                if(!response.isSuccess){
-                    toast.error(response.message);
-                }
-
-                setMessages(response.data);
-                setIsConversationLoading(false);
-
-            }).catch(err => {
-                console.log(err);
-                setIsConversationLoading(false);
-            });
-        }
-    },[currentChatUserId]);
 
     return (
         <>
@@ -66,6 +43,7 @@ export default function ChatPanel(){
                             <UserPanel 
                                 rooms={rooms} 
                                 userId={userId} 
+                                setCurrentChatRoomId={setCurrentChatRoomId}
                                 setCurrentChatUserId={setCurrentChatUserId}
                             />
                         </Segment>
@@ -75,10 +53,8 @@ export default function ChatPanel(){
                             {
                                 currentChatUserId ? 
                                 <ChatWindow 
-                                    userId={currentChatUserId}
-                                    messages={messages}
-                                    setMessages={setMessages}
-                                    isDataLoading={isConversationLoading}
+                                    currentChatUserId={currentChatUserId}
+                                    currentChatRoomId={currentChatRoomId}
                                 /> : 
                                 <MessageContainer 
                                     iconName="beer" 

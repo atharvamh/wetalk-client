@@ -1,14 +1,14 @@
 import { Button, Grid, Input, Segment, Icon, Dimmer, Loader } from "semantic-ui-react";
 import { chatStyles } from "../../styles/chat";
-import { useEffect, useRef, useState, Dispatch, SetStateAction } from "react";
+import { useEffect, useRef, useState } from "react";
 import { IUsersInNetwork } from "../../interfaces/peoplenetwork";
-import { firstLetterCaps, swapId } from "../../utils/stringUtils";
+import { firstLetterCaps } from "../../utils/stringUtils";
 import OnlineIndicator from "../OnlineIndicator";
 import socket from "../../services/socket";
 import localStorageService from "../../services/localStorageService";
-import { IMessage } from "../../interfaces/messages";
+import { IMessage, IUserMessage } from "../../interfaces/messages";
 import TextMessage from "./TextMessage";
-import { saveUserMessage } from "../../services/room";
+import { getConversations, saveUserMessage } from "../../services/room";
 import toast from "react-hot-toast";
 import MessageContainer from "../MessageContainer";
 import { scrollToBottom } from "../../utils/viewUtils";
@@ -17,27 +17,29 @@ import Picker from '@emoji-mart/react'
 import { getUserDetails } from "../../services/user";
 
 interface IChatWindow{
-    userId : string,
-    messages: IMessage[],
-    setMessages: Dispatch<SetStateAction<IMessage[]>>;
-    isDataLoading: boolean
+    currentChatUserId : string,
+    currentChatRoomId : string | undefined
 }
 
-export default function ChatWindow({ userId, messages, setMessages,  isDataLoading } : IChatWindow){
+export default function ChatWindow({ currentChatUserId, currentChatRoomId } : IChatWindow){
     const chatContainerRef = useRef<HTMLDivElement | null>(null);
     const sendRef = useRef<any>(null);
     const [chatUser, setChatUser] = useState<IUsersInNetwork | undefined>(undefined);
+    const [messages, setMessages] = useState<IMessage[]>([]);
     const myUserId = localStorageService.get("_uid") ?? "";
     const [message, setMessage] = useState<string>("");
     const [emojiPickerVisible, setEmojiPickerVisible] = useState(false);
     const [rtcActivityUid, setrtcActivityUid] = useState<string | null>(null);
     const [uEvent, setuEvent] = useState<string | null>(null);
     const [rtcLogoutTime, setRtcLogoutTime] = useState<Date | null>(null);
+    const [isConversationLoading, setIsConversationLoading] = useState<boolean>(true);
 
     useEffect(() => {
-        socket.on("user-message", (res : IMessage) => {
+        socket.on("user-message", (res : IUserMessage) => {
             const incomingMessage : IMessage = { sender : res.sender, timestamp : res.timestamp, message : res.message };
-            setMessages((prev) => [...prev, incomingMessage]);
+            if(res.roomId === currentChatRoomId){
+                setMessages((prev) => [...prev, incomingMessage]);
+            }
         })
 
         socket.on("logout-success", (res : any) => {
@@ -57,17 +59,37 @@ export default function ChatWindow({ userId, messages, setMessages,  isDataLoadi
             socket.off("logout-success");
             socket.off("login-success");
         }
-    },[])
+    },[currentChatRoomId])
+
+    useEffect(() => {
+        if(currentChatRoomId){
+            localStorageService.set("chatroom_id", JSON.stringify(currentChatRoomId));
+            socket.emit("join-room", { room: currentChatRoomId });
+
+            getConversations(currentChatRoomId).then((response) => {
+                if(!response.isSuccess){
+                    toast.error(response.message);
+                }
+
+                setMessages(response.data);
+                setIsConversationLoading(false);
+
+            }).catch(err => {
+                console.log(err);
+                setIsConversationLoading(false);
+            });
+        }
+    },[currentChatRoomId]);
 
     useEffect(() => {
         setEmojiPickerVisible(false);
-        getUserDetails(userId).then((response) => {
+        getUserDetails(currentChatUserId).then((response) => {
             setRtcLogoutTime(null);
             setrtcActivityUid(null);
             setuEvent(null);
             setChatUser(response.data);
         })
-    },[userId]);
+    },[currentChatUserId]);
 
     useEffect(() => {
         scrollToBottom(chatContainerRef);
@@ -83,16 +105,13 @@ export default function ChatWindow({ userId, messages, setMessages,  isDataLoadi
 
     const handleClick = async () => {
         if(message?.trim()){
+            setEmojiPickerVisible(false);
             const timestamp = Date.now();
-            const roomId = swapId(`${userId}-${myUserId}`);
+            const umessage : IMessage = { sender : myUserId, timestamp : timestamp, message : message.trim() }
+            const payload = { ...umessage, roomId : currentChatRoomId }
 
-            socket.emit("send-message-to-room", { room : roomId, message : message.trim(), timestamp : timestamp });
+            socket.emit("send-message-to-room", payload);
             setMessage("");
-
-            const usermessage : IMessage = { sender : myUserId, timestamp : timestamp, message : message.trim() };
-            setMessages((prev) => [...prev, usermessage]);
-
-            const payload = { ...usermessage, roomId : roomId }
 
             const saveMessageResponse = await saveUserMessage(JSON.stringify(payload));
 
@@ -118,7 +137,7 @@ export default function ChatWindow({ userId, messages, setMessages,  isDataLoadi
         <div style={chatStyles.ChatWindow}>
             <div style={chatStyles.ChatBanner}>
                 <OnlineIndicator 
-                    isOnline={ rtcActivityUid === userId ? (uEvent === "LOGIN") : chatUser?.isOnline} 
+                    isOnline={ rtcActivityUid === currentChatUserId ? (uEvent === "LOGIN") : chatUser?.isOnline} 
                     size="mini" 
                 />
                 <div style={{ fontWeight : "600" }}>
@@ -129,7 +148,7 @@ export default function ChatWindow({ userId, messages, setMessages,  isDataLoadi
                     <div style={{ fontSize : "0.8em" }}>
                         Last Seen : {" "}
                         { 
-                            rtcActivityUid === userId && rtcLogoutTime != null ? new Date(rtcLogoutTime).toLocaleString() :
+                            rtcActivityUid === currentChatUserId && rtcLogoutTime != null ? new Date(rtcLogoutTime).toLocaleString() :
                             chatUser?.lastActivity != null ? new Date(chatUser.lastActivity).toLocaleString() : "N/A"
                         }
                     </div> : <></>
@@ -137,7 +156,7 @@ export default function ChatWindow({ userId, messages, setMessages,  isDataLoadi
             </div>
             <div style={chatStyles.ChatMessagesWrapper} ref={chatContainerRef}>
                 {
-                    isDataLoading ? 
+                    isConversationLoading ? 
                     <Dimmer active>
                         <Loader inverted> Loading </Loader>
                     </Dimmer> :

@@ -31,7 +31,7 @@ const ChatMessagesWrapper : React.CSSProperties = {
 
 const ProfilePicture = (backgroundColor : string) : React.CSSProperties => {
     return {
-        width: '36px',
+        width: '40px',
         height: '36px',
         borderRadius: '50%',
         backgroundColor: backgroundColor,

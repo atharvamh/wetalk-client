@@ -3,19 +3,26 @@ import { Button, Input, List } from "semantic-ui-react";
 import { chatStyles } from "../../styles/chat";
 import { colors, colorsLength } from "../../utils/constants/colors";
 import { IRooms } from "../../interfaces/rooms";
+import localStorageService from "../../services/localStorageService";
 
 interface IUserPanel{
     rooms: IRooms[],
     userId: string,
+    setCurrentChatRoomId: Dispatch<SetStateAction<string | undefined>>;
     setCurrentChatUserId: Dispatch<SetStateAction<string | undefined>>;
 }
 
-export default function UserPanel({ rooms, userId, setCurrentChatUserId } : IUserPanel){
+export default function UserPanel({ rooms, userId, setCurrentChatRoomId, setCurrentChatUserId } : IUserPanel){
     const [searchValue, setSearchValue] = useState<string | undefined>(undefined);
 
-    const updateCurrentChatUser = (members: any[]) => {
-        const otherMember = members.filter(x => x.userId !== userId)[0];
-        setCurrentChatUserId(otherMember.userId);
+    const updateCurrentChatRoom = (item : IRooms) => {
+        if(!item.isGroupChat){
+            const otherMember = item.members.filter(x => x.userId !== userId)[0];
+            setCurrentChatUserId(otherMember.userId);
+            localStorageService.set("chatuser_id", JSON.stringify(otherMember.userId));
+        }
+
+        setCurrentChatRoomId(item._id);
     }
 
     const getRoomName = (members: any[], isGroupChat: boolean) : string => {
@@ -59,7 +66,7 @@ export default function UserPanel({ rooms, userId, setCurrentChatUserId } : IUse
                     {
                         rooms.map((item, index) => (
                             <List.Item key={item._id} style={{ padding: '1.5em 1em', background: "#fff", cursor: "pointer" }}
-                                onClick={() => updateCurrentChatUser(item.members)}>
+                                onClick={() => updateCurrentChatRoom(item)}>
                                 <div style={{ display : "flex", alignItems : "start", justifyContent : "start", columnGap : "8px" }}>
                                     <div style={chatStyles.ProfilePicture(colors[index % colorsLength])}>
                                         <span>

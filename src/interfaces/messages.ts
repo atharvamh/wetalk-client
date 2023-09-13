@@ -3,3 +3,7 @@ export interface IMessage{
     timestamp: number,
     message: string,
 }
+
+export interface IUserMessage extends IMessage{
+    roomId: string
+}

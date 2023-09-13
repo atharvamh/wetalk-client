@@ -1,13 +1,17 @@
 export interface IRooms {
     _id : string,
-    roomId: string,
-    alternativeRoomId: string,
-    members: Array<string>,
+    members: Array<IMember>,
     isGroupChat: boolean,
     metadata: {
         lastmessage: string,
         lasttimestamp: Date,
     }
+}
+
+export interface IMember{
+    firstname: string,
+    lastname: string,
+    userId: string
 }
 
 export interface IUpdatedLastMessage{
