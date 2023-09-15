@@ -9,6 +9,7 @@ export interface IRooms {
 }
 
 export interface IMember{
+    roomId?: string,
     firstname: string,
     lastname: string,
     userId: string
