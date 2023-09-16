@@ -27,6 +27,7 @@ export default function Connect(){
 
     return (
         <>
+            <h4>Count of other users on WeTalk : {usersInNetwork.length}</h4>
             {
                 isLoading ? 
                 <Dimmer active>

@@ -1,10 +1,10 @@
 import { Button, Form, Icon, Input, Label } from "semantic-ui-react";
 import authService from "../../services/authService";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { peopleNetworkStyles } from "../../styles/peoplenetwork";
 import localStorageService from "../../services/localStorageService";
 import { toast } from "react-hot-toast";
-import { getUserDetails, updateUserDetails } from "../../services/user";
+import { getUserDetails, requestUserVerification, updateUserDetails } from "../../services/user";
 import socket from "../../services/socket";
 
 const formStyle : React.CSSProperties = {
@@ -21,7 +21,7 @@ interface IUserInfo{
     email: string,
     lastActivity: Date | null,
     lastname: string,
-    isVerified: boolean
+    isVerified: boolean | undefined
 }
 
 export default function ProfileSettings(){
@@ -29,7 +29,7 @@ export default function ProfileSettings(){
     const uid = localStorageService.get("_uid") ?? "";
 
     const [user, setUser] = useState<IUserInfo>({ firstname : '', lastname : '', 
-        isVerified : false, email : '', lastActivity : null });
+        isVerified : undefined, email : '', lastActivity : null });
 
     useEffect(() => {
         if(uid){
@@ -49,6 +49,22 @@ export default function ProfileSettings(){
             return { ...prev, [name] : value }
         });
     }
+
+    const handleVerification = useCallback(async () => {
+        const payload = { 
+            email : user.email,
+            firstName : user.firstname
+        }
+
+        const response = await requestUserVerification(JSON.stringify(payload));
+        
+        if(response.isSuccess){
+            toast.success(response.message);
+            return;
+        }
+
+        toast.error(response.message);
+    },[user]);
 
     const handleLogout = async () => {
         const response = await authService.logout(uid);
@@ -122,9 +138,15 @@ export default function ProfileSettings(){
                 </Form.Field>
                 <Form.Field>
                     <span style={{ fontWeight : "500" }}>Verification Status : </span>
-                    <Label color={user.isVerified ? "green" : "red" }>
-                        { user?.isVerified ? "Verified" : "Not Verified"}
+                    <Label color={user.isVerified ? "green" : (user.isVerified === false ? "red" : undefined) }>
+                        { user?.isVerified ? "Verified" : (user.isVerified === false ? "Not Verified" : "")}
                     </Label>
+                    {
+                        user?.isVerified === false ?
+                        <Button primary size="mini" type="button" style={{ marginLeft: "1em"}} onClick={handleVerification}>
+                            Verify me
+                        </Button> : <></>
+                    }
                 </Form.Field>
                 <Button primary type="submit">Update</Button>
             </Form>

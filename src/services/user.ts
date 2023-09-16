@@ -1,4 +1,4 @@
-import { getData, getWithAuth, patchWithAuth, postData } from "./apiservice";
+import { getData, getWithAuth, patchWithAuth, postData, postWithAuth } from "./apiservice";
 
 const apiurl = import.meta.env.VITE_SERVER_URL + "/api/v1/user/";
 
@@ -40,4 +40,19 @@ export const updateUserDetails = async(uid : string, payload : any) => {
 export const getRooms = async(userId : string) => {
     const url = apiurl + `${userId}/rooms`;
     return await getWithAuth(url).then(res => res.json()).catch(err => console.log(err));
+}
+
+export const requestUserVerification = async(payload : any) => {
+    const url = apiurl + "request-verification";
+    return await postWithAuth(url, payload).then(res => res.json()).catch(err => console.log(err));
+}
+
+export const requestPasswordReset = async(payload : any) => {
+    const url = apiurl + "request-password-reset";
+    return await postWithAuth(url, payload).then(res => res.json()).catch(err => console.log(err));
+}
+
+export const resetPassword = async(payload : any) => {
+    const url = apiurl + "reset-password";
+    return await postWithAuth(url, payload).then(res => res.json()).catch(err => console.log(err));
 }
